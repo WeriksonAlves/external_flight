@@ -1,7 +1,8 @@
 from .Settings import DatasetMode, ValidationMode, RealTimeMode
 from ..auxiliary.MyDataHandler import MyDataHandler
 from ..auxiliary.MyTimer import TimeTracker
-from ..camera.StandardCameras import StandardCameras
+from ..camera.MyCamera import CameraSetup
+from ..camera.SettingParameters import SettingParameters
 from ..interfaces.ClassifierInterface import ClassifierInterface
 from ..interfaces.ExtractorInterface import ExtractorInterface
 from ..interfaces.TrackerInterface import TrackerInterface
@@ -19,7 +20,7 @@ class ModeManager:
     """
 
     def __init__(
-        self, configs: StandardCameras,
+        self, configs: SettingParameters,
         operation_mode: Union[DatasetMode, ValidationMode, RealTimeMode]
     ) -> None:
         """
@@ -283,11 +284,11 @@ class DataAcquisition:
     frames from a camera and provides thread-safe access to the latest frame.
     """
 
-    def __init__(self, configs: StandardCameras) -> None:
+    def __init__(self, configs: CameraSetup) -> None:
         """
         Initializes the DataAcquisition class.
 
-        :param configs: StandardCameras configuration object containing the
+        :param configs: CameraSetup configuration object containing the
                         `cap` (camera capture object).
         """
         if not configs or not configs.cap:

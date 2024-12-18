@@ -1,6 +1,7 @@
 from .auxiliary.MyDataHandler import MyDataHandler
 from .auxiliary.MyTimer import TimingDecorator, TimeTracker
-from .camera.StandardCameras import StandardCameras
+from .camera.MyCamera import CameraSetup
+from .camera.SettingParameters import SettingParameters
 from .interfaces.ClassifierInterface import ClassifierInterface
 from .interfaces.ExtractorInterface import ExtractorInterface
 from .interfaces.TrackerInterface import TrackerInterface
@@ -30,7 +31,8 @@ class GRS:
     def __init__(
         self,
         base_dir: str,
-        configs: StandardCameras,
+        camera: CameraSetup,
+        configs: SettingParameters,
         operation_mode: Union[DatasetMode, ValidationMode, RealTimeMode],
         tracker_model: TrackerInterface,
         hand_extractor_model: ExtractorInterface,
@@ -51,6 +53,7 @@ class GRS:
         :param sps: Optional servo position controller for camera adjustments.
         """
         self.base_dir = base_dir
+        self.camera = camera
         self.configs = configs
         self.operation_mode = operation_mode
         self.tracker = tracker_model
@@ -64,7 +67,7 @@ class GRS:
         self.data_manager = DataManager(
             operation_mode, base_dir, classifier_model
         )
-        self.data_acquisition = DataAcquisition(configs)
+        self.data_acquisition = DataAcquisition(camera)
 
         # Control loop flag
         self.loop = operation_mode.task != 'V'
@@ -144,7 +147,7 @@ class GRS:
         rospy.loginfo("Terminating Gesture Recognition System...")
         self.loop = False
         self.data_acquisition.stop_image_thread()
-        self.configs.cap.release()
+        self.camera.cap.release()
         cv2.destroyAllWindows()
         if self.sps:
             self.sps.close()

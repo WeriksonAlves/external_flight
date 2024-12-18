@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 # Internal library imports
-from modules import (
+from myLibs.grs.modules import (
     GRS,
-    StandardCameras,
+    CameraSetup,
+    SettingParameters,
     MyYolo,
     MyHandsMediaPipe,
     MyPoseMediaPipe,
@@ -20,23 +21,23 @@ import rospy
 
 
 # Constants
-DATABASE_FILE = "datasets/DataBase_(5-10)_99.json"
+DATABASE_FILE = "myLibs/grs/datasets/DataBase_(5-10)_99.json"
 DATABASE_FILES = [
-    'datasets/DataBase_(5-10)_G.json',
-    'datasets/DataBase_(5-10)_H.json',
-    'datasets/DataBase_(5-10)_L.json',
-    'datasets/DataBase_(5-10)_M.json',
-    'datasets/DataBase_(5-10)_T.json',
-    'datasets/DataBase_(5-10)_1.json',
-    'datasets/DataBase_(5-10)_2.json',
-    'datasets/DataBase_(5-10)_3.json',
-    'datasets/DataBase_(5-10)_4.json',
-    'datasets/DataBase_(5-10)_5.json',
-    'datasets/DataBase_(5-10)_6.json',
-    'datasets/DataBase_(5-10)_7.json',
-    'datasets/DataBase_(5-10)_8.json',
-    'datasets/DataBase_(5-10)_9.json',
-    'datasets/DataBase_(5-10)_10.json'
+    'myLibs/grs/datasets/DataBase_(5-10)_G.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_H.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_L.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_M.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_T.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_1.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_2.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_3.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_4.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_5.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_6.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_7.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_8.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_9.json',
+    'myLibs/grs/datasets/DataBase_(5-10)_10.json'
 ]
 NAME_VAL = "Val99"
 
@@ -93,8 +94,9 @@ def create_gesture_recognition_system(
     rospy.loginfo("Creating Gesture Recognition System...")
     try:
         return GRS(
-            base_dir=os.path.dirname(__file__),  # Get the current folder
-            configs=StandardCameras(camera, fps=15),  # Camera configuration
+            base_dir=os.path.dirname(__file__),
+            camera=CameraSetup(camera),
+            configs=SettingParameters(fps=15),
             operation_mode=operation_mode,
             tracker_model=MyYolo('yolov8n-pose.pt'),
             hand_extractor_model=MyHandsMediaPipe(
