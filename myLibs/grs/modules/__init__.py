@@ -3,6 +3,8 @@ from .auxiliary.MyDataHandler import MyDataHandler
 from .auxiliary.MyTimer import TimingDecorator
 from .auxiliary.MyTimer import TimeTracker
 
+from .camera.MyCamera import CameraSetup
+from .camera.SettingParameters import SettingParameters
 from .camera.StandardCameras import StandardCameras
 
 from .classifier.knn import KNN
