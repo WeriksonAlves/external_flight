@@ -1,55 +1,68 @@
 import rospy
 
 
-class SettingParameters:
+class SingletonMeta(type):
     """
-    Class to manage camera settings and gesture recognition parameters.
+    A Singleton metaclass for ensuring only one instance of a class is created.
+    """
+    _instances = {}
 
-    Attributes:
-        fps (int): Frames per second for video capture (default: 5).
-        dist (float): Distance parameter for gesture recognition (default:
-                        0.025).
-        length (int): Length parameter used in tracking (default: 15).
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class SettingParameters(metaclass=SingletonMeta):
+    """
+    A Singleton class to manage camera settings and gesture recognition
+    parameters.
     """
 
     def __init__(
         self, fps: int = 5, dist: float = 0.025, length: int = 15
     ) -> None:
         """
-        Initializes the SettingParameters class with the provided
+        Initialize the SettingParameters class with default or provided
         configuration values.
 
-        Args:
-            fps (int): Frames per second for video capture. Default is 5.
-            dist (float): Distance threshold for gesture recognition. Default
-                            is 0.025.
-            length (int): Length parameter for tracking. Default is 15.
+        :param fps: Frames per second for video capture (default: 5).
+        :param dist: Distance threshold for gesture recognition (default:
+                        0.025).
+        :param length: Length parameter used in gesture tracking (default: 15).
         """
+        if hasattr(self, "_initialized") and self._initialized:
+            rospy.logwarn(
+                "SettingParameters instance already initialized. Skipping "
+                "reinitialization."
+            )
+            return
+
         self.fps = fps
         self.dist = dist
         self.length = length
 
         rospy.loginfo(
-            f"SettingParameters initialized with "
-            f"fps={fps}, dist={dist}, length={length}"
+            f"SettingParameters initialized with fps={fps}, dist={dist}, "
+            f"length={length}"
         )
+
+        self._initialized = True
 
     def get_fps(self) -> int:
         """
-        Returns the current frames per second (fps) setting.
+        Get the current frames per second (fps) setting.
 
-        Returns:
-            int: Frames per second for video capture.
+        :return: Frames per second value.
         """
-        rospy.loginfo(f"Fetching FPS: {self.fps}")
+        rospy.logdebug(f"Fetching FPS: {self.fps}")
         return self.fps
 
     def set_fps(self, fps: int) -> None:
         """
-        Updates the frames per second (fps) setting.
+        Set a new frames per second (fps) value.
 
-        Args:
-            fps (int): New frames per second value.
+        :param fps: New frames per second value.
         """
         if fps <= 0:
             rospy.logwarn("FPS value must be greater than 0. No changes made.")
@@ -60,20 +73,18 @@ class SettingParameters:
 
     def get_distance(self) -> float:
         """
-        Returns the distance threshold setting.
+        Get the current distance threshold.
 
-        Returns:
-            float: Distance threshold for gesture recognition.
+        :return: Distance threshold value.
         """
-        rospy.loginfo(f"Fetching Distance: {self.dist}")
+        rospy.logdebug(f"Fetching Distance: {self.dist}")
         return self.dist
 
     def set_distance(self, dist: float) -> None:
         """
-        Updates the distance threshold setting.
+        Set a new distance threshold value.
 
-        Args:
-            dist (float): New distance threshold value.
+        :param dist: New distance threshold value.
         """
         if dist <= 0:
             rospy.logwarn(
@@ -86,20 +97,18 @@ class SettingParameters:
 
     def get_length(self) -> int:
         """
-        Returns the length parameter setting.
+        Get the current length parameter value.
 
-        Returns:
-            int: Length parameter used in gesture tracking.
+        :return: Length parameter value.
         """
-        rospy.loginfo(f"Fetching Length: {self.length}")
+        rospy.logdebug(f"Fetching Length: {self.length}")
         return self.length
 
     def set_length(self, length: int) -> None:
         """
-        Updates the length parameter setting.
+        Set a new length parameter value.
 
-        Args:
-            length (int): New length parameter value.
+        :param length: New length parameter value.
         """
         if length <= 0:
             rospy.logwarn(

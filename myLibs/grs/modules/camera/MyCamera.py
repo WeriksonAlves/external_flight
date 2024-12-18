@@ -1,76 +1,131 @@
-import cv2
-import rospy
-import numpy as np
 from ..interfaces.CameraInterface import CameraInterface
 from ....rospy_uav.modules.Bebop2 import Bebop2
-from typing import Union, Tuple
+from typing import Tuple, Union
+import cv2
+import numpy as np
+import rospy
 
 
 class CameraSetup(CameraInterface):
     """
-    A class that manages the camera or drone-based video capture.
+    Manages video capture from a standard camera or a Bebop2 drone camera.
 
-    This class handles initialization of the video capture, including
-    connecting to the camera and providing methods for releasing it.
+    This class provides methods to initialize the video source, capture frames,
+    and release resources when the video source is no longer needed.
     """
 
-    def __init__(self, source: Union[int, str, BebopCameraSetup]) -> None:
+    def __init__(self, source: Union[int, str, Bebop2]) -> None:
         """
-        Initializes the camera with the given configuration.
+        Initialize the camera with the given source.
 
-        :param source: Camera source (either an integer index or a string for
-                        video source).
-        :param fps: Frames per second for video capture (default: 5).
-        :param dist: Distance parameter (default: 0.025).
-        :param length: Length parameter (default: 15).
+        :param source: The video source to use (camera index, video file path,
+                        or Bebop2 instance).
+        :raises RuntimeError: If the camera source cannot be opened.
         """
-        if hasattr(source, 'drone_type'):
-            self.cap = BebopCameraSetup  # ROS-based camera
-        else:
-            self.cap = cv2.VideoCapture(source)  # OpenCV-based camera
+        self.cap = self._initialize_camera(source)
 
         if not self.cap.isOpened():
-            rospy.logerr("Error: Could not open camera.")
-            raise RuntimeError("Error: Could not open camera.")
+            rospy.logerr("Error: Could not open the camera source.")
+            raise RuntimeError("Error: Could not open the camera source.")
+
         rospy.loginfo(f"Camera initialized successfully with source: {source}")
 
-    def capture_frame(self) -> Union[None, any]:
+    def _initialize_camera(self, source: Union[int, str, Bebop2]):
         """
-        Captures a single frame from the camera.
+        Private method to initialize the video capture source.
 
-        :return: The captured frame if successful, None otherwise.
+        :param source: The video source (camera index, video file path, or
+                        Bebop2 instance).
+        :return: A camera object that conforms to the OpenCV interface.
+        """
+        if isinstance(source, Bebop2):
+            rospy.loginfo("Initializing Bebop2 camera adapter.")
+            return BebopCameraAdapter(source)
+        rospy.loginfo("Initializing standard OpenCV camera.")
+        return cv2.VideoCapture(source)
+
+    def capture_frame(self) -> Union[np.ndarray, None]:
+        """
+        Capture a single frame from the video source.
+
+        :return: The captured frame as a NumPy array, or None if the capture
+                    fails.
         """
         ret, frame = self.cap.read()
         if not ret:
-            rospy.logwarn("Warning: Failed to capture frame.")
+            rospy.logwarn("Failed to capture a frame.")
             return None
+
+        rospy.logdebug("Frame captured successfully.")
         return frame
 
     def release(self) -> None:
-        """Releases the camera and cleans up resources."""
-        if hasattr(self.cap, 'release'):
+        """
+        Release the video source and clean up resources.
+        """
+        if hasattr(self.cap, "release"):
             self.cap.release()
-            rospy.loginfo("Camera released successfully.")
+            rospy.loginfo("Camera resources released successfully.")
 
     def __del__(self):
-        """ Release the camera when object is destroyed. """
-        if hasattr(self.cap, 'release'):
-            self.cap.release()
+        """
+        Ensure resources are released when the object is destroyed.
+        """
+        self.release()
 
 
-class BebopCameraSetup():
-    def __init__(self, drone: Bebop2) -> None:
+class BebopCameraAdapter:
+    """
+    Adapter for integrating the Bebop2 drone camera with a standard interface.
+
+    This class translates the Bebop2 camera API into a format compatible with
+    OpenCV's interface.
+    """
+
+    def __init__(self, drone: Bebop2, show_logs: bool = False) -> None:
+        """
+        Initialize the Bebop2 camera adapter.
+
+        :param drone: The Bebop2 drone instance.
+        :param show_logs: Whether to log additional details about camera
+                            operations (default: False).
+        """
         self.drone = drone
+        self.show_logs = show_logs
+        rospy.loginfo("BebopCameraAdapter initialized.")
 
     def isOpened(self) -> bool:
-        if self.drone.camera_on():
-            return True
-        return False
+        """
+        Check if the Bebop2 camera is available.
 
-    def read(self) -> Tuple[bool, np.ndarray]:
+        :return: True if the camera is open, False otherwise.
+        """
+        is_open = self.drone.camera_on()
+        rospy.logdebug(
+            f"Bebop2 camera status: {'Opened' if is_open else 'Closed'}"
+        )
+        return is_open
+
+    def read(self) -> Tuple[bool, Union[np.ndarray, None]]:
+        """
+        Capture a single frame from the Bebop2 camera.
+
+        :return: A tuple containing the success status and the captured frame
+                    as a NumPy array.
+        """
         ret, frame = self.drone.read_image()
-        return ret, frame if ret else None, None
+        if self.show_logs:
+            if ret:
+                rospy.loginfo(
+                    "Frame captured successfully from Bebop2 camera."
+                )
+            else:
+                rospy.logwarn("Failed to capture a frame from Bebop2 camera.")
+        return ret, frame
 
     def release(self) -> None:
-        """Releases the camera and cleans up resources."""
+        """
+        Release the Bebop2 camera resources.
+        """
         self.drone.release_camera()
+        rospy.loginfo("Bebop2 camera released successfully.")
