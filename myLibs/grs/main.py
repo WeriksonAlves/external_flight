@@ -2,7 +2,7 @@
 
 # Internal library imports
 from modules import (
-    GestureRecognitionSystem,
+    GRS,
     StandardCameras,
     MyYolo,
     MyHandsMediaPipe,
@@ -81,18 +81,18 @@ def initialize_modes(mode: int) -> object:
 
 def create_gesture_recognition_system(
     camera: Union[int, str], operation_mode: object, sps: Optional[object]
-) -> GestureRecognitionSystem:
+) -> GRS:
     """
     Creates and initializes the Gesture Recognition System.
 
     :param camera: Camera configuration (e.g., camera index or stream URL).
     :param operation_mode: The configured operation mode.
     :param sps: Servo position system, if applicable.
-    :return: An instance of the GestureRecognitionSystem.
+    :return: An instance of the GRS.
     """
     rospy.loginfo("Creating Gesture Recognition System...")
     try:
-        return GestureRecognitionSystem(
+        return GRS(
             base_dir=os.path.dirname(__file__),  # Get the current folder
             configs=StandardCameras(camera, fps=15),  # Camera configuration
             operation_mode=operation_mode,

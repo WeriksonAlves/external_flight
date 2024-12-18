@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from rospy_uav.rospy_uav.Bebop2 import Bebop2
+from rospy_uav.modules.Bebop2 import Bebop2
 from typing import List
 
 

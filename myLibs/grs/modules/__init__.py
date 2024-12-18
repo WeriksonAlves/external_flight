@@ -16,9 +16,15 @@ from .interfaces.ClassifierInterface import ClassifierInterface
 from .interfaces.ExtractorInterface import ExtractorInterface
 from .interfaces.TrackerInterface import TrackerInterface
 
+from .GRS import GRS
+
 from .ros.EspCamServo import EspCamServo
 
-from .system.GestureRecognitionSystem import GestureRecognitionSystem
+from .system.GestureRecognition import DataAcquisition
+from .system.GestureRecognition import DataManager
+from .system.GestureRecognition import ExtractionProcessor
+from .system.GestureRecognition import ModeManager
+from .system.GestureRecognition import TrackerProcessor
 from .system.ServoPosition import ServoPosition
 from .system.Settings import DatasetMode
 from .system.Settings import FactoryMode

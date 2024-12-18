@@ -1,6 +1,6 @@
 import rospy
-from ..rospy_uav.commandsandsensors.DroneSensorManager import DroneSensorManager
-from ..rospy_uav.commandsandsensors.DroneCommandManager import DroneCommandManager
+from ..modules.commandsandsensors.DroneSensorManager import DroneSensorManager
+from ..modules.commandsandsensors.DroneCommandManager import DroneCommandManager
 
 
 class DroneSettingManager:

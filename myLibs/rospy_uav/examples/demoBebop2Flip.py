@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from rospy_uav.rospy_uav import Bebop2
+from rospy_uav.modules import Bebop2
 
 
 class DroneFlipManager:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from rospy_uav.rospy_uav.Bebop2 import Bebop2
-from rospy_uav.rospy_uav.utils.DrawGraphics import DrawGraphics
+from rospy_uav.modules.Bebop2 import Bebop2
+from rospy_uav.modules.utils.DrawGraphics import DrawGraphics
 from typing import List, Tuple, Callable
 import numpy as np
 import matplotlib.pyplot as plt
