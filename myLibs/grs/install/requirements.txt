@@ -1,0 +1,13 @@
+# Required libraries to download
+matplotlib==3.10.0
+PyYAML==6.0.2
+rospkg==1.5.1
+scikit_learn==1.6.0
+opencv_python==4.10.0.84
+mediapipe==0.10.20
+ultralytics==8.3.51
+
+# # Extra Libraries for download (uncomment if
+# # there are any version problems with them)
+# numpy==2.2.0
+# rospy==1.17.0
