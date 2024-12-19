@@ -39,6 +39,7 @@ class GRS:
         body_extractor_model: ExtractorInterface,
         classifier_model: Optional[ClassifierInterface] = None,
         sps: Optional[ServoPosition] = None,
+        bebop = None
     ) -> None:
         """
         Initializes the Gesture Recognition System.
@@ -61,6 +62,7 @@ class GRS:
         self.body_extractor = body_extractor_model
         self.classifier = classifier_model
         self.sps = sps
+        self.bebop = bebop
 
         # Initialize mode manager and data manager
         self.mode_manager = ModeManager(configs, operation_mode)

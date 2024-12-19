@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
-# Internal library imports
+from typing import Union, Optional
+from sklearn.neighbors import KNeighborsClassifier
+import mediapipe as mp
+import os
+import rospy
+
+# GRS Library Imports
 from myLibs.grs.modules import (
     GRS,
     CameraSetup,
@@ -9,173 +15,181 @@ from myLibs.grs.modules import (
     MyHandsMediaPipe,
     MyPoseMediaPipe,
     KNN,
-    FactoryMode
+    FactoryMode,
+    ServoPosition,
 )
 
-# External library imports
-from sklearn.neighbors import KNeighborsClassifier
-from typing import Union, Optional
-import mediapipe as mp
-import os
-import rospy
-
+# ROSPY_UAV Library Imports
+from myLibs.rospy_uav.modules import Bebop2
 
 # Constants
 DATABASE_FILE = "myLibs/grs/datasets/DataBase_(5-10)_99.json"
 DATABASE_FILES = [
-    'myLibs/grs/datasets/DataBase_(5-10)_G.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_H.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_L.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_M.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_T.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_1.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_2.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_3.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_4.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_5.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_6.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_7.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_8.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_9.json',
-    'myLibs/grs/datasets/DataBase_(5-10)_10.json'
+    f"myLibs/grs/datasets/DataBase_(5-10)_{i}.json"
+    for i in ["G", "H", "L", "M", "T", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 ]
 NAME_VAL = "Val99"
 
 
-def initialize_modes(mode: int) -> object:
+def grs_operation_mode(mode: int) -> object:
     """
-    Initializes the operation mode for the gesture recognition system.
+    Initializes the operation mode for the Gesture Recognition System.
 
     :param mode: Operation mode identifier (1=dataset, 2=validation,
                     3=real-time).
-    :return: An instance of the configured operation mode.
+    :return: Configured operation mode instance.
     """
-    rospy.loginfo(f"Initializing operation mode {mode}...")
+    rospy.loginfo(f"Initializing operation mode: {mode}")
+    database_empty = {"F": [], "I": [], "L": [], "P": [], "T": []}
 
-    database_empty = {'F': [], 'I': [], 'L': [], 'P': [], 'T': []}
     try:
-        if mode == 1:
-            return FactoryMode.create_mode(
-                mode_type='dataset',
-                database=database_empty,
-                file_name_build=DATABASE_FILE
-            )
-        elif mode == 2:
-            return FactoryMode.create_mode(
-                mode_type='validate',
-                files_name=DATABASE_FILES,
-                database=database_empty,
-                name_val=NAME_VAL
-            )
-        elif mode == 3:
-            return FactoryMode.create_mode(
-                mode_type='real_time',
-                files_name=DATABASE_FILES,
-                database=database_empty
-            )
-        else:
+        mode_type_map = {
+            1: (
+                "dataset",
+                {
+                    "database": database_empty,
+                    "file_name_build": DATABASE_FILE
+                }
+            ),
+            2: (
+                "validate",
+                {
+                    "files_name": DATABASE_FILES,
+                    "database": database_empty,
+                    "name_val": NAME_VAL,
+                },
+            ),
+            3: (
+                "real_time",
+                {
+                    "files_name": DATABASE_FILES,
+                    "database": database_empty
+                },
+            ),
+        }
+
+        if mode not in mode_type_map:
             raise ValueError("Invalid mode. Supported modes are 1, 2, or 3.")
+
+        mode_type, kwargs = mode_type_map[mode]
+        return FactoryMode.create_mode(mode_type=mode_type, **kwargs)
     except Exception as e:
         rospy.logerr(f"Error initializing operation mode: {e}")
         raise
 
 
+def initialize_camera(camera: str) -> Union[int, str, Bebop2]:
+    """
+    Initializes the camera configuration based on the input type.
+
+    :param camera: Camera type ('realsense', 'espcam', or 'bebop').
+    :return: Camera index, stream URL, or Bebop2 instance.
+    """
+    rospy.loginfo(f"Initializing camera: {camera}")
+    camera_map = {
+        "realsense": 4,
+        "espcam": "http://192.168.209.199:81/stream",
+        "bebop": Bebop2(drone_type="bebop2", ip_address="192.168.0.202"),
+    }
+    return camera_map.get(camera.lower(), 4)
+
+
 def create_gesture_recognition_system(
-    camera: Union[int, str], operation_mode: object, sps: Optional[object]
+    camera: Union[int, str, Bebop2],
+    operation_mode: object,
+    sps: Optional[ServoPosition] = None,
+    bebop: Optional[Bebop2] = None,
 ) -> GRS:
     """
-    Creates and initializes the Gesture Recognition System.
+    Creates and initializes the Gesture Recognition System (GRS).
 
-    :param camera: Camera configuration (e.g., camera index or stream URL).
+    :param camera: Camera configuration (e.g., camera index, URL, or Bebop2
+                    instance).
     :param operation_mode: The configured operation mode.
     :param sps: Servo position system, if applicable.
-    :return: An instance of the GRS.
+    :param bebop: Bebop2 drone instance, if applicable.
+    :return: Configured GRS instance.
     """
     rospy.loginfo("Creating Gesture Recognition System...")
     try:
+        tracker_model = MyYolo("yolov8n-pose.pt")
+        hand_extractor_model = MyHandsMediaPipe(
+            mp.solutions.hands.Hands(
+                static_image_mode=False,
+                max_num_hands=1,
+                model_complexity=1,
+                min_detection_confidence=0.75,
+                min_tracking_confidence=0.75,
+            )
+        )
+        body_extractor_model = MyPoseMediaPipe(
+            mp.solutions.pose.Pose(
+                static_image_mode=False,
+                model_complexity=1,
+                smooth_landmarks=True,
+                enable_segmentation=False,
+                smooth_segmentation=True,
+                min_detection_confidence=0.75,
+                min_tracking_confidence=0.75,
+            )
+        )
+        classifier_model = (
+            KNN(
+                KNeighborsClassifier(
+                    n_neighbors=getattr(operation_mode, "k", 5),
+                    algorithm="auto",
+                    weights="uniform",
+                )
+            )
+            if hasattr(operation_mode, "k")
+            else None
+        )
+
         return GRS(
             base_dir=os.path.dirname(__file__),
             camera=CameraSetup(camera),
             configs=SettingParameters(fps=15),
             operation_mode=operation_mode,
-            tracker_model=MyYolo('yolov8n-pose.pt'),
-            hand_extractor_model=MyHandsMediaPipe(
-                mp.solutions.hands.Hands(
-                    static_image_mode=False,
-                    max_num_hands=1,
-                    model_complexity=1,
-                    min_detection_confidence=0.75,
-                    min_tracking_confidence=0.75
-                )
-            ),
-            body_extractor_model=MyPoseMediaPipe(
-                mp.solutions.pose.Pose(
-                    static_image_mode=False,
-                    model_complexity=1,
-                    smooth_landmarks=True,
-                    enable_segmentation=False,
-                    smooth_segmentation=True,
-                    min_detection_confidence=0.75,
-                    min_tracking_confidence=0.75
-                )
-            ),
-            classifier_model=KNN(
-                KNeighborsClassifier(
-                    n_neighbors=getattr(operation_mode, 'k', 5),
-                    algorithm='auto',
-                    weights='uniform'
-                )
-            ) if hasattr(operation_mode, 'k') else None,
-            sps=sps
+            tracker_model=tracker_model,
+            hand_extractor_model=hand_extractor_model,
+            body_extractor_model=body_extractor_model,
+            classifier_model=classifier_model,
+            sps=sps,
+            bebop=bebop,
         )
     except Exception as e:
         rospy.logerr(f"Error creating Gesture Recognition System: {e}")
         raise
 
 
-def initialize_camera(camera: str) -> Union[int, str]:
-    """
-    Initializes the camera configuration based on the input.
-
-    :param camera: The camera type ('realsense' or 'espcam').
-    :return: Camera index (int) or stream URL (str).
-    """
-    rospy.loginfo(f"Initializing camera: {camera}...")
-    if camera.lower() == 'realsense':
-        return 4
-    elif camera.lower() == 'espcam':
-        return "http://192.168.209.199:81/stream"
-    else:
-        rospy.logwarn(
-            f"Unknown camera type '{camera}', defaulting to 'realsense'."
-        )
-        return 4
-
-
 def main() -> None:
     """
     Main function to initialize and run the Gesture Recognition System.
     """
-    rospy.init_node('Gesture_Recognition', anonymous=True)
+    rospy.init_node("External_Flight", anonymous=True)
 
     try:
-        # Set the operation mode
-        operation_mode = initialize_modes(mode=3)
+        rospy.loginfo("Setting up operation mode...")
+        operation_mode = grs_operation_mode(mode=3)
 
-        # Initialize and run the system
+        rospy.loginfo("Initializing camera...")
+        camera = initialize_camera(camera="bebop")
+
+        rospy.loginfo("Initializing Bebop2 drone...")
+        bebop = camera if isinstance(camera, Bebop2) else None
+
+        rospy.loginfo("Initializing Gesture Recognition System...")
         gesture_system = create_gesture_recognition_system(
-            camera=initialize_camera('realsense'),
-            operation_mode=operation_mode,
-            sps=None
+            camera=camera, operation_mode=operation_mode, bebop=bebop
         )
 
-        rospy.loginfo("\n\nStarting Gesture Recognition System...\n\n")
+        rospy.loginfo("Starting Gesture Recognition System...")
         gesture_system.run()
 
     except Exception as e:
         rospy.logerr(f"An error occurred: {e}")
     finally:
-        if 'gesture_system' in locals():
+        if "gesture_system" in locals():
             gesture_system.terminate()
         rospy.loginfo("Gesture Recognition System stopped.")
 
