@@ -126,15 +126,3 @@ class GestureRecognition:
         except Exception as e:
             rospy.logerr(f"Failed to initialize GRS: {e}")
             raise
-
-    def get_latest_command(self) -> str:
-        """
-        Retrieve the most recent command from the Gesture Recognition System.
-
-        :return: The recognized command.
-        """
-        if len(self.system.mode_manager.predictions) == 0:
-            return None
-        else:
-            command = self.system.mode_manager.predictions[-1]
-        return command

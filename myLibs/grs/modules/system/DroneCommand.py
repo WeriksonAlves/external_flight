@@ -8,7 +8,7 @@ class DroneManager:
     drone-related operations.
     """
 
-    def __init__(self, drone_type: str, ip_address: str) -> None:
+    def __init__(self, drone_type: str, ip_address: str, ) -> None:
         """
         Initialize DroneManager instance.
 
