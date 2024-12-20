@@ -5,6 +5,7 @@ from .camera.SettingParameters import SettingParameters
 from .interfaces.ClassifierInterface import ClassifierInterface
 from .interfaces.ExtractorInterface import ExtractorInterface
 from .interfaces.TrackerInterface import TrackerInterface
+from .system.DroneCommand import DroneManager
 from .system.GestureRecognition import DataAcquisition
 from .system.GestureRecognition import DataManager
 from .system.GestureRecognition import ExtractionProcessor
@@ -39,6 +40,7 @@ class GRS:
         body_extractor_model: ExtractorInterface,
         classifier_model: Optional[ClassifierInterface] = None,
         sps: Optional[ServoPosition] = None,
+        drone_manager: Optional[DroneManager] = None,
     ) -> None:
         """
         Initializes the Gesture Recognition System.
@@ -61,6 +63,7 @@ class GRS:
         self.body_extractor = body_extractor_model
         self.classifier = classifier_model
         self.sps = sps
+        self.drone_manager = drone_manager
 
         # Initialize mode manager and data manager
         self.mode_manager = ModeManager(configs, operation_mode)
@@ -277,5 +280,6 @@ class GRS:
             f"The gesture belongs to class {predicted_class} "
             f"and took {classification_time:.3f}ms to classify."
         )
+        self.drone_manager.execute_command(predicted_class)
         self.mode_manager.initialize_storage_variables()
         self.mode_manager.stage = 0

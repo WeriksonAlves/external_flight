@@ -1,19 +1,17 @@
 #!/usr/bin/env python
 
-# %% Imports
-from modules import DroneManager, GestureRecognition
-from sklearn.neighbors import KNeighborsClassifier
-import mediapipe as mp
-import os
-import rospy
-
-# GRS Library Imports
+from modules import GestureRecognition
 from myLibs.grs.modules import (
     MyYolo,
     MyHandsMediaPipe,
     MyPoseMediaPipe,
     KNN,
+    DroneManager
 )
+from sklearn.neighbors import KNeighborsClassifier
+import mediapipe as mp
+import os
+import rospy
 
 
 def main():
@@ -26,10 +24,10 @@ def main():
         for i in ["G", "H", "L", "M", "T", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     ]
     name_val = "Val99"
-    drone_type = "bebop2"
+    drone_type = "gazebo"
     ip_address = "192.168.0.202"
 
-    drone_manager = DroneManager(drone_type, ip_address)
+    # Initialize Gesture Recognition System
     gesture_recognition = GestureRecognition(
         database_file, database_files, name_val
     )
@@ -68,28 +66,24 @@ def main():
         if hasattr(operation_mode, "k")
         else None
     )
+    drone_manager = DroneManager(drone_type, ip_address)
 
     gesture_recognition.initialize_grs(
         base_dir=base_dir,
-        camera=drone_manager.uav,
+        camera=4,  # drone_manager.uav,
         operation_mode=operation_mode,
         tracker_model=tracker_model,
         hand_extractor_model=hand_extractor_model,
         body_extractor_model=body_extractor_model,
         classifier_model=classifier_model,
+        drone_manager=drone_manager
     )
 
-    rospy.loginfo("Starting Gesture Recognition System...")
-    # Executed in the main thread
+    # Start Threads
+    rospy.loginfo(
+        "Starting threads for gesture recognition and drone control..."
+    )
     gesture_recognition.system.run()
-
-    # Execute in the auxiliar thread 1
-    previous_command = None
-    while not rospy.is_shutdown():
-        command = gesture_recognition.get_latest_command()
-        if command != previous_command:
-            drone_manager.execute_command(command)
-            previous_command = command
 
 
 if __name__ == "__main__":

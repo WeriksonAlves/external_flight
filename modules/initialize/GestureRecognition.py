@@ -8,6 +8,7 @@ from myLibs.grs.modules import (
     SettingParameters,
     KNN,
     FactoryMode,
+    DroneManager,
 )
 
 # UAV Library Imports
@@ -94,6 +95,7 @@ class GestureRecognition:
         hand_extractor_model: object,
         body_extractor_model: object,
         classifier_model: Optional[KNN] = None,
+        drone_manager: Optional[DroneManager] = None,
     ) -> GRS:
         """
         Initialize the Gesture Recognition System (GRS).
@@ -118,6 +120,7 @@ class GestureRecognition:
                 hand_extractor_model=hand_extractor_model,
                 body_extractor_model=body_extractor_model,
                 classifier_model=classifier_model,
+                drone_manager=drone_manager,
             )
             return self.system
         except Exception as e:

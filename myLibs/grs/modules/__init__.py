@@ -21,6 +21,7 @@ from .GRS import GRS
 
 from .ros.EspCamServo import EspCamServo
 
+from .system.DroneCommand import DroneManager
 from .system.GestureRecognition import DataAcquisition
 from .system.GestureRecognition import DataManager
 from .system.GestureRecognition import ExtractionProcessor

@@ -23,7 +23,9 @@ class DroneManager:
         Initialize the drone by checking connection, battery status, and
         starting the video stream.
         """
-        if not self.uav.check_connection():
+        if (self.uav.drone_type == 'bebop2') and (
+            not self.uav.check_connection()
+        ):
             rospy.logerr(
                 "Failed to connect to the drone. Please check the connection."
             )
@@ -54,13 +56,13 @@ class DroneManager:
                 'F': self.uav.follow_me,
                 'I': self.uav.rotate,
             }
-        elif self.uav.drone_type == "gazibo":
+        elif self.uav.drone_type == "gazebo":
             command_map = {
                 'T': self.uav.takeoff,
                 'L': self.uav.land,
                 'P': self.uav.fly_direct,
-                'F': self.uav.trajectory,
-                'I': self.uav.rotate,
+                'F': self.uav.flip,
+                'I': self.uav.take_snapshot,
             }
         if command in command_map:
             rospy.loginfo(f"Executing command: {command}")
