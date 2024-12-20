@@ -1,2 +1,2 @@
-from .InitializeGRS import InitializeGRS
-from .InitializeUAV import InitializeUAV
+from .GestureRecognition import GestureRecognition
+from .DroneManager import DroneManager

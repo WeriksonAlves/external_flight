@@ -1,141 +1,21 @@
 #!/usr/bin/env python
 
 # %% Imports
+from modules import DroneManager, GestureRecognition
 from sklearn.neighbors import KNeighborsClassifier
-from typing import List, Optional, Union
 import mediapipe as mp
 import os
 import rospy
 
 # GRS Library Imports
 from myLibs.grs.modules import (
-    GRS,
-    CameraSetup,
-    SettingParameters,
     MyYolo,
     MyHandsMediaPipe,
     MyPoseMediaPipe,
     KNN,
-    FactoryMode,
 )
 
-# UAV Library Imports
-from myLibs.rospy_uav.modules import Bebop2
 
-
-# %% Gesture Recognition System
-class GestureRecognition:
-    """
-    A class to initialize and configure the Gesture Recognition System (GRS).
-    """
-
-    def __init__(
-        self, database_file: str, database_files: List[str], name_val: str
-    ) -> None:
-        """
-        Constructor for InitializeGRS.
-
-        :param database_file: Path to the primary database file.
-        :param database_files: List of database files for validation or
-                                training.
-        :param name_val: Name or identifier for the validation dataset.
-        """
-        self.database_file = database_file
-        self.database_files = database_files
-        self.name_val = name_val
-        self.system = None
-
-    def operation_mode(self, mode: str) -> object:
-        """
-        Configure the operation mode for the Gesture Recognition System.
-
-        :param mode: Operation mode identifier ('D'=dataset, 'V'=validation,
-                        'R'=real-time).
-        :return: Instance of the configured operation mode.
-        :raises ValueError: If an invalid mode is provided.
-        """
-        rospy.loginfo(f"Configuring operation mode: {mode}")
-
-        database_empty = {"F": [], "I": [], "L": [], "P": [], "T": []}
-        mode_type_map = {
-            'D': (
-                "dataset",
-                {
-                    "database": database_empty,
-                    "file_name_build": self.database_file},
-            ),
-            'V': (
-                "validate",
-                {
-                    "files_name": self.database_files,
-                    "database": database_empty,
-                    "name_val": self.name_val,
-                },
-            ),
-            'R': (
-                "real_time",
-                {
-                    "files_name": self.database_files,
-                    "database": database_empty},
-            ),
-        }
-
-        if mode not in mode_type_map:
-            rospy.logerr(
-                f"Invalid mode '{mode}'. Supported modes are 'D', 'V', 'R'."
-            )
-            raise ValueError(
-                "Invalid mode. Supported modes are 'D', 'V', or 'R'."
-            )
-
-        mode_type, kwargs = mode_type_map[mode]
-        try:
-            return FactoryMode.create_mode(mode_type=mode_type, **kwargs)
-        except Exception as e:
-            rospy.logerr(f"Error configuring operation mode: {e}")
-            raise
-
-    def create_gesture_recognition_system(
-        self,
-        base_dir: str,
-        camera: Union[int, str, Bebop2],
-        operation_mode: object,
-        tracker_model: object,
-        hand_extractor_model: object,
-        body_extractor_model: object,
-        classifier_model: Optional[KNN] = None,
-    ) -> GRS:
-        """
-        Create an instance of the Gesture Recognition System (GRS).
-
-        :param base_dir: Base directory for the GRS configuration.
-        :param camera: Camera source (e.g., index, URL, or Bebop2 instance).
-        :param operation_mode: Configured operation mode instance.
-        :param tracker_model: Tracker model instance (e.g., YOLO-based).
-        :param hand_extractor_model: Hand feature extraction model.
-        :param body_extractor_model: Body feature extraction model.
-        :param classifier_model: Optional gesture classifier model (e.g., KNN).
-        :return: Configured GRS instance.
-        """
-        rospy.loginfo("Initializing Gesture Recognition System...")
-        try:
-            self.system = GRS(
-                base_dir=base_dir,
-                camera=CameraSetup(camera),
-                configs=SettingParameters(fps=15),
-                operation_mode=operation_mode,
-                tracker_model=tracker_model,
-                hand_extractor_model=hand_extractor_model,
-                body_extractor_model=body_extractor_model,
-                classifier_model=classifier_model,
-            )
-            return self.system
-        except Exception as e:
-            rospy.logerr(f"Failed to initialize GRS: {e}")
-            raise
-
-
-# %% Main Code
 def main():
     rospy.init_node("External_Flight", anonymous=True)
 
@@ -146,19 +26,16 @@ def main():
         for i in ["G", "H", "L", "M", "T", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     ]
     name_val = "Val99"
+    drone_type = "bebop2"
+    ip_address = "192.168.0.202"
 
-    # Initialize GRS setup
-    initialize_grs = GestureRecognition(
+    drone_manager = DroneManager(drone_type, ip_address)
+    gesture_recognition = GestureRecognition(
         database_file, database_files, name_val
     )
-    operation_mode = initialize_grs.operation_mode('R')
+    operation_mode = gesture_recognition.configure_operation_mode('R')
 
-    rospy.loginfo("Initializing camera...")
-    camera = Bebop2(drone_type='bebop2', ip_address='192.168.0.202')
-
-    rospy.loginfo("Initializing Gesture Recognition System...")
     base_dir = os.path.dirname(__file__)
-
     tracker_model = MyYolo("yolov8n-pose.pt")
     hand_extractor_model = MyHandsMediaPipe(
         mp.solutions.hands.Hands(
@@ -192,9 +69,9 @@ def main():
         else None
     )
 
-    grs = initialize_grs.create_gesture_recognition_system(
+    gesture_recognition.initialize_grs(
         base_dir=base_dir,
-        camera=camera,
+        camera=drone_manager.uav,
         operation_mode=operation_mode,
         tracker_model=tracker_model,
         hand_extractor_model=hand_extractor_model,
@@ -202,11 +79,15 @@ def main():
         classifier_model=classifier_model,
     )
 
-    rospy.loginfo("Initializing Bebop2 drone...")
-    bebop = camera if isinstance(camera, Bebop2) else None
-
     rospy.loginfo("Starting Gesture Recognition System...")
-    grs.run()
+    gesture_recognition.system.run()
+
+    # previous_command = None
+    # while not rospy.is_shutdown():
+    #     command = gesture_recognition.get_latest_command()
+    #     if command != previous_command:
+    #         drone_manager.execute_command(command)
+    #         previous_command = command
 
 
 if __name__ == "__main__":

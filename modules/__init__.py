@@ -4,7 +4,7 @@ from .droneActions.FlyDirect import FlightPattern
 from .droneActions.Trajectory import DroneTrajectoryManager
 from .droneActions.Trajectory import TrajectoryGenerator
 
-from .initialize.InitializeGRS import InitializeGRS
-from .initialize.InitializeUAV import InitializeUAV
+from .initialize.GestureRecognition import GestureRecognition
+from .initialize.DroneManager import DroneManager
 
 from .utils.PersonTracker import PersonTracker

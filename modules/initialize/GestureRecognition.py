@@ -23,7 +23,7 @@ class GestureRecognition:
         self, database_file: str, database_files: List[str], name_val: str
     ) -> None:
         """
-        Constructor for InitializeGRS.
+        Initialize GestureRecognition instance.
 
         :param database_file: Path to the primary database file.
         :param database_files: List of database files for validation or
@@ -35,13 +35,13 @@ class GestureRecognition:
         self.name_val = name_val
         self.system = None
 
-    def operation_mode(self, mode: str) -> object:
+    def configure_operation_mode(self, mode: str) -> object:
         """
         Configure the operation mode for the Gesture Recognition System.
 
         :param mode: Operation mode identifier ('D'=dataset, 'V'=validation,
                         'R'=real-time).
-        :return: Instance of the configured operation mode.
+        :return: Configured operation mode instance.
         :raises ValueError: If an invalid mode is provided.
         """
         rospy.loginfo(f"Configuring operation mode: {mode}")
@@ -85,7 +85,7 @@ class GestureRecognition:
             rospy.logerr(f"Error configuring operation mode: {e}")
             raise
 
-    def create_gesture_recognition_system(
+    def initialize_grs(
         self,
         base_dir: str,
         camera: Union[int, str, Bebop2],
@@ -96,7 +96,7 @@ class GestureRecognition:
         classifier_model: Optional[KNN] = None,
     ) -> GRS:
         """
-        Create an instance of the Gesture Recognition System (GRS).
+        Initialize the Gesture Recognition System (GRS).
 
         :param base_dir: Base directory for the GRS configuration.
         :param camera: Camera source (e.g., index, URL, or Bebop2 instance).
@@ -123,3 +123,11 @@ class GestureRecognition:
         except Exception as e:
             rospy.logerr(f"Failed to initialize GRS: {e}")
             raise
+
+    def get_latest_command(self) -> str:
+        """
+        Retrieve the most recent command from the Gesture Recognition System.
+
+        :return: The recognized command.
+        """
+        return self.system.mode_manager.predictions[-1]
