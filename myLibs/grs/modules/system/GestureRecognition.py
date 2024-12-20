@@ -422,7 +422,7 @@ class TrackerProcessor:
             results_people, annotated_frame = self.tracker.detect_people(frame)
             rospy.logdebug("People detected in the frame: %s", results_people)
 
-            bounding_box, track_id = self.tracker.identify_operator(
+            self.bounding_box, track_id = self.tracker.identify_operator(
                 results_people
             )
             if self.show_logs:
@@ -431,7 +431,7 @@ class TrackerProcessor:
                 )
 
             success, cropped_image = self.tracker.crop_operator(
-                bounding_box, track_id, annotated_frame, frame
+                self.bounding_box, track_id, annotated_frame, frame
             )
 
             if success:
