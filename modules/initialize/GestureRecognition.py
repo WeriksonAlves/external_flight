@@ -130,4 +130,8 @@ class GestureRecognition:
 
         :return: The recognized command.
         """
-        return self.system.mode_manager.predictions[-1]
+        if len(self.system.mode_manager.predictions) == 0:
+            return None
+        else:
+            command = self.system.mode_manager.predictions[-1]
+        return command

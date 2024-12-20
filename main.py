@@ -80,14 +80,16 @@ def main():
     )
 
     rospy.loginfo("Starting Gesture Recognition System...")
+    # Executed in the main thread
     gesture_recognition.system.run()
 
-    # previous_command = None
-    # while not rospy.is_shutdown():
-    #     command = gesture_recognition.get_latest_command()
-    #     if command != previous_command:
-    #         drone_manager.execute_command(command)
-    #         previous_command = command
+    # Execute in the auxiliar thread 1
+    previous_command = None
+    while not rospy.is_shutdown():
+        command = gesture_recognition.get_latest_command()
+        if command != previous_command:
+            drone_manager.execute_command(command)
+            previous_command = command
 
 
 if __name__ == "__main__":
