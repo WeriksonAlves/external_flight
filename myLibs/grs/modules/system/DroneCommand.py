@@ -8,14 +8,18 @@ class DroneManager:
     drone-related operations.
     """
 
-    def __init__(self, drone_type: str, ip_address: str, ) -> None:
+    def __init__(
+        self, uav: Bebop2, cammand_map: dict
+    ) -> None:
         """
         Initialize DroneManager instance.
 
-        :param drone_type: Type of the drone (e.g., 'bebop2').
-        :param ip_address: IP address of the drone.
+        :param uav: An instance of the Bebop2 drone.
+        :param cammand_map: A dictionary mapping gesture commands to drone
+                            actions.
         """
-        self.uav = Bebop2(drone_type, ip_address)
+        self.uav = uav
+        self.command_map = cammand_map
         self.initialize_drone()
 
     def initialize_drone(self) -> None:
@@ -45,26 +49,9 @@ class DroneManager:
         """
         Execute the given command on the drone.
 
-        :param command: The command to be executed (e.g., 'T', 'L', 'P', 'F',
-                        'I').
+        :param command: The command to be executed.
         """
-        if self.uav.drone_type == "bebop2":
-            command_map = {
-                'T': self.uav.takeoff,
-                'L': self.uav.land,
-                'P': self.uav.take_snapshot,
-                'F': self.uav.follow_me,
-                'I': self.uav.rotate,
-            }
-        elif self.uav.drone_type == "gazebo":
-            command_map = {
-                'T': self.uav.takeoff,
-                'L': self.uav.land,
-                'P': self.uav.fly_direct,
-                'F': self.uav.flip,
-                'I': self.uav.take_snapshot,
-            }
-        if command in command_map:
+        if command in self.command_map:
             rospy.loginfo(f"Executing command: {command}")
             # command_map[command]()
         else:
