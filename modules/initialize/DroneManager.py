@@ -46,13 +46,22 @@ class DroneManager:
         :param command: The command to be executed (e.g., 'T', 'L', 'P', 'F',
                         'I').
         """
-        command_map = {
-            'T': self.uav.takeoff,
-            'L': self.uav.land,
-            'P': self.uav.take_snapshot,
-            'F': self.uav.follow_me,
-            'I': self.uav.rotate,
-        }
+        if self.uav.drone_type == "bebop2":
+            command_map = {
+                'T': self.uav.takeoff,
+                'L': self.uav.land,
+                'P': self.uav.take_snapshot,
+                'F': self.uav.follow_me,
+                'I': self.uav.rotate,
+            }
+        elif self.uav.drone_type == "gazibo":
+            command_map = {
+                'T': self.uav.takeoff,
+                'L': self.uav.land,
+                'P': self.uav.fly_direct,
+                'F': self.uav.trajectory,
+                'I': self.uav.rotate,
+            }
         if command in command_map:
             rospy.loginfo(f"Executing command: {command}")
             # command_map[command]()
