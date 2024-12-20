@@ -1,8 +1,7 @@
-from .droneActions.FlyDirect import DroneActionManager
-from .droneActions.FlyDirect import FlightCommand
-from .droneActions.FlyDirect import FlightPattern
-from .droneActions.Trajectory import DroneTrajectoryManager
-from .droneActions.Trajectory import TrajectoryGenerator
+
+from .utils.DroneActions import execute_trajectory
+from .utils.DroneActions import execute_flight_pattern
+from .utils.DroneActions import DroneTrajectoryManager
 
 from .initialize.GestureRecognition import GestureRecognition
 

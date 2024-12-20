@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from modules import GestureRecognition
+from modules import GestureRecognition, PersonTracker, execute_flight_pattern, execute_trajectory, DroneTrajectoryManager
 from myLibs.grs.modules import (
     MyYolo,
     MyHandsMediaPipe,
@@ -12,6 +12,7 @@ from sklearn.neighbors import KNeighborsClassifier
 import mediapipe as mp
 import os
 import rospy
+from myLibs.rospy_uav.modules import Bebop2
 
 
 def main():
@@ -66,7 +67,25 @@ def main():
         if hasattr(operation_mode, "k")
         else None
     )
-    drone_manager = DroneManager(drone_type, ip_address)
+
+    uav = Bebop2(drone_type, ip_address)
+    if drone_type == "bebop2":
+        command_map = {
+            'T': uav.takeoff,
+            'L': uav.land,
+            'P': uav.take_snapshot,
+            'F': None,
+            'I': None,
+        }
+    elif drone_type == "gazebo":
+        command_map = {
+            'T': uav.takeoff,
+            'L': uav.land,
+            'P': execute_trajectory(DroneTrajectoryManager(uav), "cube"),
+            'F': execute_trajectory(DroneTrajectoryManager(uav), "ellipse"),
+            'I': execute_trajectory(DroneTrajectoryManager(uav), "lemniscate"),
+        }
+    drone_manager = DroneManager(uav, command_map)
 
     gesture_recognition.initialize_grs(
         base_dir=base_dir,
