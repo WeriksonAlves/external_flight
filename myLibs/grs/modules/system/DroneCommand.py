@@ -53,6 +53,6 @@ class DroneManager:
         """
         if command in self.command_map:
             rospy.loginfo(f"Executing command: {command}")
-            # command_map[command]()
+            self.command_map[command]()
         else:
             rospy.loginfo("Unknown or inconclusive gesture command received.")

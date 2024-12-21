@@ -216,6 +216,3 @@ def execute_trajectory(
     else:
         print(f"Invalid trajectory type: {trajectory_type}. Options: 'cube', "
               "'ellipse', 'lemniscate'.")
-
-    # Show trajectory plot
-    plt.show()

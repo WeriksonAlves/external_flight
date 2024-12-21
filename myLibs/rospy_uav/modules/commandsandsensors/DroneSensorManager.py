@@ -52,7 +52,12 @@ class DroneSensorManager:
             'gps_position': [0.0] * 3,
             'ground_truth': None,
             'image': None,
-            'odometry': None,
+            'odometry': {
+                "position": [0.0] * 3,
+                "orientation": [0.0] * 3,
+                "linear_speed": [0.0] * 3,
+                "angular_speed": [0.0] * 3
+                },
             'position': [0.0] * 3,
             'speed_linear': [0.0] * 3,
             'state': "unknown",
