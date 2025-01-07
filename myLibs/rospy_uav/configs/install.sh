@@ -28,7 +28,7 @@ if [ $? -ne 0 ]; then
     exit 1 
 fi
 
-sudo apt-get install build-essential git python3 libavahi-client-dev ros-noetic-joy ros-noetic-joy-teleop ros-noetic-teleop-twist-joy -y
+#sudo apt-get install build-essential git python3 libavahi-client-dev ros-noetic-joy ros-noetic-joy-teleop ros-noetic-teleop-twist-joy -y
 if [ $? -eq 0 ]; then 
     echo -e "Dependencies installed with success.\n"
 else 
@@ -37,7 +37,7 @@ else
 fi
 
 # Reads the user stdin
-read -p "Enter a name for the ROS workspace: " ROSWORKSPACE
+ROSWORKSPACE=bebop_ws
 
 # Checks if there's something wrong with the workspace name
 if [ -z "$ROSWORKSPACE" ]; then 
@@ -50,19 +50,7 @@ if [[ "$ROSWORKSPACE" =~ [^a-zA-Z0-9_-] ]]; then
     exit 1 
 fi
 
-# Verifies if there's already a directory using the $ROSWORKSPACE name
-if [ -d "$ROSWORKSPACE" ]; then 
-    read -p "Found a directory called $ROSWORKSPACE, do you wish to use it for this script? (Y/N)? " choice
-    case "$choice" in 
-        [Yy]* ) echo "Using the existing workspace.";;
-        [Nn]* ) echo "Please choose a different workspace name."; exit 1;;
-        * ) echo "Invalid input. Exiting."; exit 1;;
-    esac
-else
-    # Creates a ROS workspace dir in case it doesn't exist
-    mkdir -p "$ROSWORKSPACE/src"
-    echo "Workspace directory created: $ROSWORKSPACE/src"
-fi
+
 
 # Downloading and compiling the parrot arsdk package
 cd "$ROSWORKSPACE"
