@@ -28,7 +28,7 @@ if [ $? -ne 0 ]; then
     exit 1 
 fi
 
-#sudo apt-get install build-essential git python3 libavahi-client-dev ros-noetic-joy ros-noetic-joy-teleop ros-noetic-teleop-twist-joy -y
+sudo apt-get install build-essential git python3 libavahi-client-dev ros-noetic-joy ros-noetic-joy-teleop ros-noetic-teleop-twist-joy -y
 if [ $? -eq 0 ]; then 
     echo -e "Dependencies installed with success.\n"
 else 
