@@ -158,16 +158,21 @@ class RecordingVideoAdapter:
 
         if not self.cap.isOpened():
             rospy.logerr(f"Error: Could not open video file at {video_path}.")
-            raise RuntimeError(f"Error: Could not open video file at {video_path}.")
-        
+            raise RuntimeError(
+                f"Error: Could not open video file at {video_path}."
+            )
+
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)  # Retrieve frame rate
         if self.fps <= 0:
             rospy.logwarn("Invalid FPS detected. Defaulting to 30 FPS.")
             self.fps = 30.0  # Fallback to a default value
-        
+
         self.frame_delay = 1.0 / self.fps  # Calculate frame delay
         self.last_frame_time = time.time()
-        rospy.loginfo(f"RecordingVideoAdapter initialized with file: {video_path}, FPS: {self.fps}.")
+        rospy.loginfo(
+            f"RecordingVideoAdapter initialized with file: "
+            f"{video_path}, FPS: {self.fps}."
+        )
 
     def isOpened(self) -> bool:
         """
@@ -197,9 +202,9 @@ class RecordingVideoAdapter:
 
         if elapsed_time >= self.frame_delay:
             ret, frame = self.cap.read()
-            self.last_frame_time = time.time()  # Atualizar tempo de referência
+            self.last_frame_time = time.time()  # update last frame time
         else:
-            ret, frame = False, None  # Nenhum quadro lido se o tempo não passou
+            ret, frame = False, None
 
         if self.show_logs:
             if ret:

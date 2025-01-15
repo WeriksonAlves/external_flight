@@ -66,7 +66,7 @@ def create_command_map(
 
         bebop_commands = {
             'P': lambda: photografy(uav, "image"),
-            'F': lambda: execute_trajectory(trajectory_manager, "cube"),#lambda: follow_me(uav, "image", ),
+            'F': lambda: execute_trajectory(trajectory_manager, "cube"),
             'I': lambda: execute_trajectory(trajectory_manager, "lemniscate"),
         }
 
@@ -171,7 +171,7 @@ def main():
     base_dir = os.path.dirname(__file__)
     gesture_recognition.initialize_grs(
         base_dir=base_dir,
-        camera=drone_manager.uav, #"output.mp4",#drone_manager.uav,  # Replace with drone_manager.uav if needed
+        camera=drone_manager.uav,  # "output.mp4", drone_manager.uav
         operation_mode=operation_mode,
         tracker_model=tracker_model,
         hand_extractor_model=hand_extractor_model,

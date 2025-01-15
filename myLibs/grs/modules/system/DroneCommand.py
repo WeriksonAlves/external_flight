@@ -57,7 +57,7 @@ class DroneManager:
             self.command_map[command]()
         else:
             rospy.loginfo("Unknown or inconclusive gesture command received.")
-    
+
     def save_bounding_box(self, bounding_box: tuple) -> None:
         """
         Save the bounding box of the detected object.

@@ -22,6 +22,7 @@ import os
 import rospy
 import time
 
+
 class GRS:
     """
     Main class for the gesture recognition system, integrating mode handling,
@@ -111,12 +112,13 @@ class GRS:
 
     def run(self) -> None:
         """
-        Runs the main loop for real-time gesture recognition or dataset collection.
+        Runs the main loop for real-time gesture recognition or dataset
+        collection.
         """
         try:
             # Inicializar o tempo para rastrear quadros em tempo real
             frame_time = TimeTracker.get_current_time()
-            while self.loop:                
+            while self.loop:
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     rospy.loginfo("Exit signal received (q pressed).")
                     self.terminate()
@@ -206,7 +208,9 @@ class GRS:
         Handles tracking and feature extraction during stages 0 and 1.
         """
         cropped_image = self.tracker_processor.process_tracking(frame)
-        self.drone_manager.save_bounding_box(self.tracker_processor.bounding_box)
+        self.drone_manager.save_bounding_box(
+            self.tracker_processor.bounding_box
+        )
         if cropped_image is not None:
             if cropped_image.shape[0] < 320 or cropped_image.shape[1] < 240:
                 cropped_image = cv2.resize(
