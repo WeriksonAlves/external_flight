@@ -114,7 +114,7 @@ class GestureRecognition:
             self.system = GRS(
                 base_dir=base_dir,
                 camera=CameraSetup(camera),
-                configs=SettingParameters(fps=15),
+                configs=SettingParameters(fps=30),
                 operation_mode=operation_mode,
                 tracker_model=tracker_model,
                 hand_extractor_model=hand_extractor_model,

@@ -2,7 +2,8 @@ from myLibs.rospy_uav.modules.Bebop2 import Bebop2
 from myLibs.rospy_uav.modules.utils.DrawGraphics import DrawGraphics
 from typing import List, Tuple, Callable
 import numpy as np
-import matplotlib.pyplot as plt
+import os
+import cv2
 
 
 class TrajectoryGenerator:
@@ -216,3 +217,94 @@ def execute_trajectory(
     else:
         print(f"Invalid trajectory type: {trajectory_type}. Options: 'cube', "
               "'ellipse', 'lemniscate'.")
+
+
+def photografy(bebop: Bebop2, topic: str) -> None:
+    """
+    Take a snapshot with the drone's camera.
+
+    :param bebop: The Bebop2 drone instance.
+    :param topic: ROS topic to subscribe to for the image data.
+    """
+    ret, frame = bebop.read_image(topic)
+
+    if not ret:
+        print("Erro ao capturar a imagem. Verifique a conexão com o drone.")
+        return
+
+    snapshot_dir = os.path.join(os.getcwd(), 'images', 'snapshot')
+    os.makedirs(snapshot_dir, exist_ok=True)
+
+    snapshot_counter = len(os.listdir(snapshot_dir))
+    snapshot_filename = f"img_{snapshot_counter:04d}.png"
+    snapshot_filepath = os.path.join(snapshot_dir, snapshot_filename)
+
+    cv2.imwrite(snapshot_filepath, frame)
+    print(f"\nSnapshot salvo em: {snapshot_filepath}\n")
+
+
+def follow_me(
+    bebop: Bebop2, topic: str, bounding_box: np.ndarray,
+    Gi: Tuple[float, float] = (0.5, 0.5), Ge: Tuple[float, float] = (50, 50)
+) -> None:
+    """
+    Adjust the camera orientation and yaw based on the operator's position in the frame.
+
+    :param uav: The Bebop2 drone instance.
+    :param frame: The captured frame.
+    :param bounding_box: Bounding box for the detected operator.
+    :param Gi: Internal gain for pitch and yaw adjustment.
+    :param Ge: External gain for pitch and yaw adjustment.
+    """
+    ret, frame = bebop.read_image(topic)
+
+    if not ret:
+        print("Erro ao capturar a imagem. Verifique a conexão com o drone.")
+        return
+
+    dist_center_h, dist_center_v = _centralize_operator(
+        frame, bounding_box)
+
+    sc_pitch = np.tanh(-dist_center_v * Gi[0]) * Ge[0] if abs(
+        dist_center_v) > 0.25 else 0
+    sc_yaw = np.tanh(dist_center_h * Gi[1]) * Ge[1] if abs(
+        dist_center_h) > 0.25 else 0
+    print(f"Pitch ajustado: {sc_pitch}, Yaw ajustado: {sc_yaw}")
+
+    # Comando de voo: gira o drone para centralizar o operador no eixo horizontal
+    bebop.fly_direct(0., 0., 0., dist_center_h, 0.1)
+    
+    # Move a câmera para centralizar o operador
+    bebop.command_manager.adjust_camera_orientation(tilt=sc_pitch, pan=0)
+
+
+def _centralize_operator(
+    frame: np.ndarray, bounding_box: Tuple[int, int, int, int],
+    drone_pitch: float = 0.0, drone_yaw: float = 0.0
+) -> Tuple[float, float]:
+    """
+    Calculate the horizontal and vertical distance from the bounding box to the frame's center.
+
+    :param frame: The captured frame.
+    :param bounding_box: The bounding box of the operator as (x, y, width, height).
+    :param drone_pitch: The pitch value for compensation.
+    :param drone_yaw: The yaw value for compensation.
+    :return: Tuple[float, float]: The horizontal and vertical distance to the frame's center.
+    """
+    frame_height, frame_width = frame.shape[:2]
+    frame_center = (frame_width // 2, frame_height // 2)
+
+    # Coordenadas da bounding box
+    box_x, box_y, _, _ = bounding_box
+
+    # Calcula o centro da bounding box
+    box_center_x = box_x # + box_width // 2
+    box_center_y = box_y # + box_height // 2
+
+    # Calcula a distância para o centro do frame (normalizada)
+    dist_to_center_h = (
+        box_center_x - frame_center[0]) / frame_center[0] - drone_yaw
+    dist_to_center_v = (
+        box_center_y - frame_center[1]) / frame_center[1] - drone_pitch
+
+    return dist_to_center_h, dist_to_center_v
