@@ -339,6 +339,7 @@ class DataAcquisition:
                 with self.frame_lock:
                     self.frame_captured = resized_frame
             else:
+                cv2.imshow("Main Camera", np.zeros((480, 640, 3), np.uint8))
                 rospy.logwarn("Failed to capture frame from the camera.")
 
     def _resize_frame(self, frame: np.ndarray) -> np.ndarray:

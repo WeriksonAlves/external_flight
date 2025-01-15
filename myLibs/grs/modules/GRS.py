@@ -20,7 +20,7 @@ import cv2
 import numpy as np
 import os
 import rospy
-
+import time
 
 class GRS:
     """
@@ -111,27 +111,32 @@ class GRS:
 
     def run(self) -> None:
         """
-        Runs the main loop for real-time gesture recognition or dataset
-        collection.
+        Runs the main loop for real-time gesture recognition or dataset collection.
         """
         try:
+            # Inicializar o tempo para rastrear quadros em tempo real
             frame_time = TimeTracker.get_current_time()
-
-            while self.loop:
+            while self.loop:                
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     rospy.loginfo("Exit signal received (q pressed).")
                     self.terminate()
                     break
 
+                # Checar se a coleta de dados foi completada
                 if self._check_dataset_completion():
                     break
 
-                if TimeTracker.calculate_elapsed_time(frame_time) > (
-                    1 / self.configs.fps
-                ):
+                # Calcular o tempo decorrido
+                elapsed_time = TimeTracker.calculate_elapsed_time(frame_time)
+                frame_delay = 1 / self.configs.fps
+
+                if elapsed_time >= frame_delay:
+                    # Atualizar o tempo base para o próximo quadro
                     frame_time = TimeTracker.get_current_time()
                     self._process_frame()
-
+                else:
+                    # Permitir que outros processos rodem enquanto espera
+                    time.sleep(frame_delay - elapsed_time)
         except KeyboardInterrupt:
             rospy.loginfo("System interrupted by user.")
         finally:
@@ -154,6 +159,9 @@ class GRS:
         cv2.destroyAllWindows()
         if self.sps:
             self.sps.close()
+        # Envia um comando de land para o drone
+        if self.drone_manager:
+            self.drone_manager.execute_command("land")
         rospy.loginfo("System terminated successfully.")
 
     def _check_dataset_completion(self) -> bool:
@@ -198,7 +206,12 @@ class GRS:
         Handles tracking and feature extraction during stages 0 and 1.
         """
         cropped_image = self.tracker_processor.process_tracking(frame)
+        self.drone_manager.save_bounding_box(self.tracker_processor.bounding_box)
         if cropped_image is not None:
+            if cropped_image.shape[0] < 320 or cropped_image.shape[1] < 240:
+                cropped_image = cv2.resize(
+                    cropped_image, (240, 320), interpolation=cv2.INTER_AREA
+                )
             if not self.extraction_processor.process_extraction(cropped_image):
                 cv2.imshow("Main Camera", cropped_image)
         else:

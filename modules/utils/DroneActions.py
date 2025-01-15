@@ -2,6 +2,7 @@ from myLibs.rospy_uav.modules.Bebop2 import Bebop2
 from myLibs.rospy_uav.modules.utils.DrawGraphics import DrawGraphics
 from typing import List, Tuple, Callable
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import cv2
 

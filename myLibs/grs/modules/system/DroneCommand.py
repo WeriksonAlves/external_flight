@@ -20,6 +20,7 @@ class DroneManager:
         """
         self.uav = uav
         self.command_map = cammand_map
+        self.bounding_box = None
         self.initialize_drone()
 
     def initialize_drone(self) -> None:
@@ -56,3 +57,11 @@ class DroneManager:
             self.command_map[command]()
         else:
             rospy.loginfo("Unknown or inconclusive gesture command received.")
+    
+    def save_bounding_box(self, bounding_box: tuple) -> None:
+        """
+        Save the bounding box of the detected object.
+
+        :param bounding_box: The bounding box coordinates.
+        """
+        self.bounding_box = bounding_box

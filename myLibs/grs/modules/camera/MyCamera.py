@@ -4,6 +4,7 @@ from typing import Tuple, Union
 import cv2
 import numpy as np
 import rospy
+import time
 
 
 class CameraSetup(CameraInterface):
@@ -41,6 +42,9 @@ class CameraSetup(CameraInterface):
         if isinstance(source, Bebop2):
             rospy.loginfo("Initializing Bebop2 camera adapter.")
             return BebopCameraAdapter(source)
+        elif isinstance(source, str):  # Assuming string is a video file path
+            rospy.loginfo("Initializing video file adapter.")
+            return RecordingVideoAdapter(source)
         rospy.loginfo("Initializing standard OpenCV camera.")
         return cv2.VideoCapture(source)
 
@@ -49,11 +53,11 @@ class CameraSetup(CameraInterface):
         Capture a single frame from the video source.
 
         :return: The captured frame as a NumPy array, or None if the capture
-                    fails.
+                fails.
         """
         ret, frame = self.cap.read()
         if not ret:
-            rospy.logwarn("Failed to capture a frame.")
+            rospy.logwarn("Failed to capture a frame. Retrying...")
             return None
 
         rospy.logdebug("Frame captured successfully.")
@@ -113,7 +117,7 @@ class BebopCameraAdapter:
         :return: A tuple containing the success status and the captured frame
                     as a NumPy array.
         """
-        ret, frame = self.drone.read_image()
+        ret, frame = self.drone.read_image("image")
         if self.show_logs:
             if ret:
                 rospy.loginfo(
@@ -129,3 +133,85 @@ class BebopCameraAdapter:
         """
         self.drone.release_camera()
         rospy.loginfo("Bebop2 camera released successfully.")
+
+
+class RecordingVideoAdapter:
+    """
+    Adapter for integrating a recorded video file as a video source
+    compatible with the standard camera interface.
+
+    This class translates the recorded video file into a format compatible
+    with OpenCV's interface.
+    """
+
+    def __init__(self, video_path: str, show_logs: bool = False) -> None:
+        """
+        Initialize the recorded video adapter.
+
+        :param video_path: Path to the recorded video file.
+        :param show_logs: Whether to log additional details about video
+                          operations (default: False).
+        """
+        self.video_path = video_path
+        self.show_logs = show_logs
+        self.cap = cv2.VideoCapture(video_path)
+
+        if not self.cap.isOpened():
+            rospy.logerr(f"Error: Could not open video file at {video_path}.")
+            raise RuntimeError(f"Error: Could not open video file at {video_path}.")
+        
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS)  # Retrieve frame rate
+        if self.fps <= 0:
+            rospy.logwarn("Invalid FPS detected. Defaulting to 30 FPS.")
+            self.fps = 30.0  # Fallback to a default value
+        
+        self.frame_delay = 1.0 / self.fps  # Calculate frame delay
+        self.last_frame_time = time.time()
+        rospy.loginfo(f"RecordingVideoAdapter initialized with file: {video_path}, FPS: {self.fps}.")
+
+    def isOpened(self) -> bool:
+        """
+        Check if the video file is available and ready to read.
+
+        :return: True if the video file is open, False otherwise.
+        """
+        is_open = self.cap.isOpened()
+        if self.show_logs:
+            rospy.logdebug(
+                f"Recorded video status: {'Opened' if is_open else 'Closed'}"
+            )
+        return is_open
+
+    def read(self) -> Tuple[bool, Union[np.ndarray, None]]:
+        """
+        Capture a single frame from the video file.
+
+        Synchronizes the frame reading with the video's frame rate to ensure
+        real-time playback.
+
+        :return: A tuple containing the success status and the captured frame
+                as a NumPy array.
+        """
+        current_time = time.time()
+        elapsed_time = current_time - self.last_frame_time
+
+        if elapsed_time >= self.frame_delay:
+            ret, frame = self.cap.read()
+            self.last_frame_time = time.time()  # Atualizar tempo de referência
+        else:
+            ret, frame = False, None  # Nenhum quadro lido se o tempo não passou
+
+        if self.show_logs:
+            if ret:
+                rospy.loginfo("Frame captured successfully from video.")
+            else:
+                rospy.logwarn("Failed to capture a frame from the video.")
+        return ret, frame
+
+    def release(self) -> None:
+        """
+        Release the video file resources.
+        """
+        if self.cap.isOpened():
+            self.cap.release()
+            rospy.loginfo("Video file resources released successfully.")

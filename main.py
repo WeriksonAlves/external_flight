@@ -9,6 +9,8 @@ import mediapipe as mp
 from modules import (
     GestureRecognition,
     execute_trajectory,
+    photografy,
+    follow_me,
     DroneTrajectoryManager,
 )
 from myLibs.grs.modules import (
@@ -63,9 +65,9 @@ def create_command_map(
         }
 
         bebop_commands = {
-            'P': uav.take_snapshot,
-            'F': None,  # Add specific action for Bebop if needed
-            'I': lambda: execute_trajectory(trajectory_manager, "ellipse"),
+            'P': lambda: photografy(uav, "image"),
+            'F': lambda: execute_trajectory(trajectory_manager, "cube"),#lambda: follow_me(uav, "image", ),
+            'I': lambda: execute_trajectory(trajectory_manager, "lemniscate"),
         }
 
         return {
@@ -145,7 +147,7 @@ def main():
         for i in ["G", "H", "L", "M", "T", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     ]
     name_val = "Val99"
-    drone_type = "gazebo"
+    drone_type = "bebop2"
     ip_address = "192.168.0.202"
 
     # Initialize gesture recognition and operation mode
@@ -169,7 +171,7 @@ def main():
     base_dir = os.path.dirname(__file__)
     gesture_recognition.initialize_grs(
         base_dir=base_dir,
-        camera=4,  # Replace with drone_manager.uav if needed
+        camera=drone_manager.uav, #"output.mp4",#drone_manager.uav,  # Replace with drone_manager.uav if needed
         operation_mode=operation_mode,
         tracker_model=tracker_model,
         hand_extractor_model=hand_extractor_model,
