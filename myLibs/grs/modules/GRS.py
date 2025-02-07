@@ -1,9 +1,11 @@
 from .auxiliary.MyDataHandler import MyDataHandler
 from .auxiliary.MyTimer import TimingDecorator, TimeTracker
-from .camera.StandardCameras import StandardCameras
+from .camera.MyCamera import CameraSetup
+from .camera.SettingParameters import SettingParameters
 from .interfaces.ClassifierInterface import ClassifierInterface
 from .interfaces.ExtractorInterface import ExtractorInterface
 from .interfaces.TrackerInterface import TrackerInterface
+from .system.DroneCommand import DroneManager
 from .system.GestureRecognition import DataAcquisition
 from .system.GestureRecognition import DataManager
 from .system.GestureRecognition import ExtractionProcessor
@@ -18,7 +20,7 @@ import cv2
 import numpy as np
 import os
 import rospy
-
+import time
 
 class GRS:
     """
@@ -30,13 +32,15 @@ class GRS:
     def __init__(
         self,
         base_dir: str,
-        configs: StandardCameras,
+        camera: CameraSetup,
+        configs: SettingParameters,
         operation_mode: Union[DatasetMode, ValidationMode, RealTimeMode],
         tracker_model: TrackerInterface,
         hand_extractor_model: ExtractorInterface,
         body_extractor_model: ExtractorInterface,
         classifier_model: Optional[ClassifierInterface] = None,
         sps: Optional[ServoPosition] = None,
+        drone_manager: Optional[DroneManager] = None,
     ) -> None:
         """
         Initializes the Gesture Recognition System.
@@ -51,6 +55,7 @@ class GRS:
         :param sps: Optional servo position controller for camera adjustments.
         """
         self.base_dir = base_dir
+        self.camera = camera
         self.configs = configs
         self.operation_mode = operation_mode
         self.tracker = tracker_model
@@ -58,13 +63,14 @@ class GRS:
         self.body_extractor = body_extractor_model
         self.classifier = classifier_model
         self.sps = sps
+        self.drone_manager = drone_manager
 
         # Initialize mode manager and data manager
         self.mode_manager = ModeManager(configs, operation_mode)
         self.data_manager = DataManager(
             operation_mode, base_dir, classifier_model
         )
-        self.data_acquisition = DataAcquisition(configs)
+        self.data_acquisition = DataAcquisition(camera)
 
         # Control loop flag
         self.loop = operation_mode.task != 'V'
@@ -105,27 +111,32 @@ class GRS:
 
     def run(self) -> None:
         """
-        Runs the main loop for real-time gesture recognition or dataset
-        collection.
+        Runs the main loop for real-time gesture recognition or dataset collection.
         """
         try:
+            # Inicializar o tempo para rastrear quadros em tempo real
             frame_time = TimeTracker.get_current_time()
-
-            while self.loop:
+            while self.loop:                
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     rospy.loginfo("Exit signal received (q pressed).")
                     self.terminate()
                     break
 
+                # Checar se a coleta de dados foi completada
                 if self._check_dataset_completion():
                     break
 
-                if TimeTracker.calculate_elapsed_time(frame_time) > (
-                    1 / self.configs.fps
-                ):
+                # Calcular o tempo decorrido
+                elapsed_time = TimeTracker.calculate_elapsed_time(frame_time)
+                frame_delay = 1 / self.configs.fps
+
+                if elapsed_time >= frame_delay:
+                    # Atualizar o tempo base para o próximo quadro
                     frame_time = TimeTracker.get_current_time()
                     self._process_frame()
-
+                else:
+                    # Permitir que outros processos rodem enquanto espera
+                    time.sleep(frame_delay - elapsed_time)
         except KeyboardInterrupt:
             rospy.loginfo("System interrupted by user.")
         finally:
@@ -144,10 +155,13 @@ class GRS:
         rospy.loginfo("Terminating Gesture Recognition System...")
         self.loop = False
         self.data_acquisition.stop_image_thread()
-        self.configs.cap.release()
+        self.camera.cap.release()
         cv2.destroyAllWindows()
         if self.sps:
             self.sps.close()
+        # Envia um comando de land para o drone
+        if self.drone_manager:
+            self.drone_manager.execute_command("land")
         rospy.loginfo("System terminated successfully.")
 
     def _check_dataset_completion(self) -> bool:
@@ -192,7 +206,12 @@ class GRS:
         Handles tracking and feature extraction during stages 0 and 1.
         """
         cropped_image = self.tracker_processor.process_tracking(frame)
+        self.drone_manager.save_bounding_box(self.tracker_processor.bounding_box)
         if cropped_image is not None:
+            if cropped_image.shape[0] < 320 or cropped_image.shape[1] < 240:
+                cropped_image = cv2.resize(
+                    cropped_image, (240, 320), interpolation=cv2.INTER_AREA
+                )
             if not self.extraction_processor.process_extraction(cropped_image):
                 cv2.imshow("Main Camera", cropped_image)
         else:
@@ -274,5 +293,6 @@ class GRS:
             f"The gesture belongs to class {predicted_class} "
             f"and took {classification_time:.3f}ms to classify."
         )
+        self.drone_manager.execute_command(predicted_class)
         self.mode_manager.initialize_storage_variables()
         self.mode_manager.stage = 0

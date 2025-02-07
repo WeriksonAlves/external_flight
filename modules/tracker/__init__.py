@@ -1,1 +1,0 @@
-from .MyYolo import MyYolo

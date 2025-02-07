@@ -26,8 +26,6 @@ class Bebop2:
         :param ip_address: IP address of the drone.
         :param frequency: Frequency for sensor updates in Hz.
         """
-        rospy.init_node("ROS_UAV", anonymous=True)
-
         self.drone_type = drone_type
         self.ip_address = ip_address
         self.frequency = frequency

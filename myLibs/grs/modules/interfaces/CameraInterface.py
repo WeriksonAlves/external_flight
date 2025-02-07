@@ -36,17 +36,6 @@ class CameraInterface(ABC):
         )
 
     @abstractmethod
-    def get_fps(self) -> int:
-        """
-        Gets the current frames per second (fps) of the camera.
-
-        :return: FPS value of the camera capture.
-        """
-        raise NotImplementedError(
-            "Subclasses must implement 'get_fps' method."
-        )
-
-    @abstractmethod
     def release(self) -> None:
         """
         Releases the camera and cleans up resources when the object is
