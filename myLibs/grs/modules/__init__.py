@@ -3,7 +3,8 @@ from .auxiliary.MyDataHandler import MyDataHandler
 from .auxiliary.MyTimer import TimingDecorator
 from .auxiliary.MyTimer import TimeTracker
 
-from .camera.StandardCameras import StandardCameras
+from .camera.MyCamera import CameraSetup
+from .camera.SettingParameters import SettingParameters
 
 from .classifier.knn import KNN
 
@@ -20,6 +21,7 @@ from .GRS import GRS
 
 from .ros.EspCamServo import EspCamServo
 
+from .system.DroneCommand import DroneManager
 from .system.GestureRecognition import DataAcquisition
 from .system.GestureRecognition import DataManager
 from .system.GestureRecognition import ExtractionProcessor

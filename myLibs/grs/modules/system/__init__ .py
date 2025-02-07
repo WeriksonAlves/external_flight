@@ -1,3 +1,4 @@
+from .DroneCommand import DroneManager
 from .GestureRecognition import DataAcquisition
 from .GestureRecognition import DataManager
 from .GestureRecognition import ExtractionProcessor

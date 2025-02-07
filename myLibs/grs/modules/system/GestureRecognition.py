@@ -1,7 +1,8 @@
 from .Settings import DatasetMode, ValidationMode, RealTimeMode
 from ..auxiliary.MyDataHandler import MyDataHandler
 from ..auxiliary.MyTimer import TimeTracker
-from ..camera.StandardCameras import StandardCameras
+from ..camera.MyCamera import CameraSetup
+from ..camera.SettingParameters import SettingParameters
 from ..interfaces.ClassifierInterface import ClassifierInterface
 from ..interfaces.ExtractorInterface import ExtractorInterface
 from ..interfaces.TrackerInterface import TrackerInterface
@@ -19,7 +20,7 @@ class ModeManager:
     """
 
     def __init__(
-        self, configs: StandardCameras,
+        self, configs: SettingParameters,
         operation_mode: Union[DatasetMode, ValidationMode, RealTimeMode]
     ) -> None:
         """
@@ -283,11 +284,11 @@ class DataAcquisition:
     frames from a camera and provides thread-safe access to the latest frame.
     """
 
-    def __init__(self, configs: StandardCameras) -> None:
+    def __init__(self, configs: CameraSetup) -> None:
         """
         Initializes the DataAcquisition class.
 
-        :param configs: StandardCameras configuration object containing the
+        :param configs: CameraSetup configuration object containing the
                         `cap` (camera capture object).
         """
         if not configs or not configs.cap:
@@ -338,6 +339,7 @@ class DataAcquisition:
                 with self.frame_lock:
                     self.frame_captured = resized_frame
             else:
+                cv2.imshow("Main Camera", np.zeros((480, 640, 3), np.uint8))
                 rospy.logwarn("Failed to capture frame from the camera.")
 
     def _resize_frame(self, frame: np.ndarray) -> np.ndarray:
@@ -421,7 +423,7 @@ class TrackerProcessor:
             results_people, annotated_frame = self.tracker.detect_people(frame)
             rospy.logdebug("People detected in the frame: %s", results_people)
 
-            bounding_box, track_id = self.tracker.identify_operator(
+            self.bounding_box, track_id = self.tracker.identify_operator(
                 results_people
             )
             if self.show_logs:
@@ -430,7 +432,7 @@ class TrackerProcessor:
                 )
 
             success, cropped_image = self.tracker.crop_operator(
-                bounding_box, track_id, annotated_frame, frame
+                self.bounding_box, track_id, annotated_frame, frame
             )
 
             if success:
